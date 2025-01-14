@@ -14,7 +14,7 @@ contract CounterScript is Script {
     function run() public {
         vm.startBroadcast();
 
-        mockERC20 = new MockERC20();
+        mockERC20 = new MockERC20(msg.sender);
         mock2ERC20 = new Mock2ERC20();
 
         vm.stopBroadcast();
