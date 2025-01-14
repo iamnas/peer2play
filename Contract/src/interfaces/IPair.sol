@@ -11,5 +11,7 @@ interface IPair {
     function getReserves() external view returns (uint256 reserve0, uint256 reserve1, uint32 blockTimestampLast);
 
     function initialize(address, address) external;
+
+    //  function transferFrom(address from, address to, uint value) external returns (bool);
     
 }

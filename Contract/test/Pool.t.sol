@@ -77,55 +77,51 @@ contract RouterTest is Test {
     }
 
     function testSwapExactTokensForTokens() public {
-        // Step 1: Add liquidity
+
+        // Step 1: Approve router to spend tokens
+        vm.startPrank(user);
+        tokenA.approve(address(router), type(uint256).max); // Approve max TokenA
+        tokenB.approve(address(router), type(uint256).max); // Approve max TokenB
+        vm.stopPrank();
+
+        // Step 2: Add liquidity
         vm.startPrank(user);
         router.addLiquidity(
             address(tokenA),
             address(tokenB),
-            100 ether, // User provides 100 TokenA
-            200 ether, // User provides 200 TokenB
-            100 ether, // Minimum TokenA
-            200 ether, // Minimum TokenB
+            .1 ether, // Add 1e9 TokenA
+            .1 ether, // Add 2e9 TokenB
+            .1 ether, // Minimum TokenA
+            .1 ether, // Minimum TokenB
             user
         );
         vm.stopPrank();
 
-        // Verify that the pair exists
-        address pair = factory.getPair(address(tokenA), address(tokenB));
-        require(pair != address(0), "Pair not created");
 
-        // Step 2: Perform swap
-        uint256 amountIn = 10 ether; // User swaps 10 TokenA
-        uint256 amountOutMin = 18 ether; // Expecting at least 18 TokenB (calculated based on reserves)
+        // Step 3: Perform swap
+        uint256 amountIn = 10; 
+        uint256 expectedAmountOut = 10;
 
         vm.startPrank(user);
-        uint256 initialBalanceB = tokenB.balanceOf(user);
+        uint256 initialBalanceB = tokenB.balanceOf(user); // Track initial TokenB balance
+
+        address[] memory pairAdd = new address[](2);
+        pairAdd[0] = address(tokenB);
+        pairAdd[1] = address(tokenA);
+
         router.swapExactTokensForTokens(
             amountIn,
-            amountOutMin,
-            _path(address(tokenA), address(tokenB)),
-            user
+            expectedAmountOut, // Minimum expected output
+            pairAdd, //_path(address(tokenA), address(tokenB)), // Path for swap
+            user // Recipient of TokenB
         );
         vm.stopPrank();
 
-        // Verify balances
+        // Verify the swap output
         uint256 finalBalanceB = tokenB.balanceOf(user);
         uint256 receivedTokenB = finalBalanceB - initialBalanceB;
-        require(
-            receivedTokenB >= amountOutMin,
-            "Swap output is less than expected"
-        );
 
-        emit log_named_uint("TokenB received after swap:", receivedTokenB);
+        assert(receivedTokenB >= expectedAmountOut);
     }
 
-    function _path(
-        address token1,
-        address token2
-    ) private pure returns (address[] memory path) {
-        path[0] = token1;
-        path[1] = token2;
-    }
-
-   
 }

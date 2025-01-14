@@ -76,23 +76,23 @@ contract Router {
     }
 
     // Remove liquidity
-    // function removeLiquidity(
-    //     address tokenA,
-    //     address tokenB,
-    //     uint256 liquidity,
-    //     uint256 amountAMin,
-    //     uint256 amountBMin,
-    //     address to
-    // ) public returns (uint256 amountA, uint256 amountB) {
-    //     address pair = IFactory(factory).getPair(tokenA, tokenB);
-    //     require(pair != address(0), "Router: PAIR_DOES_NOT_EXIST");
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        // uint256 liquidity,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to
+    ) public returns (uint256 amountA, uint256 amountB) {
+        address pair = IFactory(factory).getPair(tokenA, tokenB);
+        require(pair != address(0), "Router: PAIR_DOES_NOT_EXIST");
 
-    //     IPair(pair).transferFrom(msg.sender, pair, liquidity);
-    //     (amountA, amountB) = IPair(pair).burn(to);
+        // IPair(pair).transferFrom(msg.sender, pair, liquidity);
+        (amountA, amountB) = IPair(pair).burn(to);
 
-    //     require(amountA >= amountAMin, "Router: INSUFFICIENT_A_AMOUNT");
-    //     require(amountB >= amountBMin, "Router: INSUFFICIENT_B_AMOUNT");
-    // }
+        require(amountA >= amountAMin, "Router: INSUFFICIENT_A_AMOUNT");
+        require(amountB >= amountBMin, "Router: INSUFFICIENT_B_AMOUNT");
+    }
 
     // Swap tokens
     function swapExactTokensForTokens(

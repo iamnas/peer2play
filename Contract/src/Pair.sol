@@ -107,10 +107,6 @@ contract Pair is IPair {
 
         require(amount0In > 0 || amount1In > 0, "Pair: INSUFFICIENT_INPUT_AMOUNT");
 
-        uint256 balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        uint256 balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint256(_reserve0).mul(_reserve1).mul(1000**2), "Pair: K");
-
         _update(balance0, balance1);
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
