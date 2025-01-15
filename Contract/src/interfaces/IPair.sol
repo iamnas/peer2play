@@ -13,5 +13,4 @@ interface IPair {
     function initialize(address, address) external;
 
     //  function transferFrom(address from, address to, uint value) external returns (bool);
-    
 }

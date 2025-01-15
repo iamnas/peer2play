@@ -23,7 +23,14 @@ contract Pair is IPair {
     // Events
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
     event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to);
-    event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to);
+    event Swap(
+        address indexed sender,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address indexed to
+    );
     event Sync(uint256 reserve0, uint256 reserve1);
 
     function initialize(address _token0, address _token1) external override {
@@ -39,12 +46,12 @@ contract Pair is IPair {
     function _update(uint256 balance0, uint256 balance1) private {
         reserve0 = balance0;
         reserve1 = balance1;
-        blockTimestampLast = uint32(block.timestamp % 2**32);
+        blockTimestampLast = uint32(block.timestamp % 2 ** 32);
         emit Sync(reserve0, reserve1);
     }
 
     function mint(address to) external override returns (uint256 liquidity) {
-        (uint256 _reserve0, uint256 _reserve1, ) = getReserves();
+        (uint256 _reserve0, uint256 _reserve1,) = getReserves();
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
@@ -54,10 +61,7 @@ contract Pair is IPair {
         if (totalSupply == 0) {
             liquidity = SafeMath.sqrt(amount0.mul(amount1));
         } else {
-            liquidity = SafeMath.min(
-                amount0.mul(totalSupply) / _reserve0,
-                amount1.mul(totalSupply) / _reserve1
-            );
+            liquidity = SafeMath.min(amount0.mul(totalSupply) / _reserve0, amount1.mul(totalSupply) / _reserve1);
         }
         require(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
 
@@ -93,7 +97,7 @@ contract Pair is IPair {
 
     function swap(uint256 amount0Out, uint256 amount1Out, address to) external override {
         require(amount0Out > 0 || amount1Out > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
-        (uint256 _reserve0, uint256 _reserve1, ) = getReserves();
+        (uint256 _reserve0, uint256 _reserve1,) = getReserves();
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "Pair: INSUFFICIENT_LIQUIDITY");
 
         uint256 balance0 = IERC20(token0).balanceOf(address(this));

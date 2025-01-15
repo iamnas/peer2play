@@ -5,14 +5,14 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "forge-std/Test.sol";
 import {MockERC20} from "../src/MockERC20.sol";
-import {Router} from "../src/MYPoolRouter.sol";
+import {PoolRouter} from "../src/PoolRouter.sol";
 import {Pair} from "../src/Pair.sol";
-import {Factory} from "../src/MYPoolFactory.sol";
+import {PoolFactory} from "../src/PoolFactory.sol";
 import {SafeMath} from "../src/library/SafeMath.sol";
 
 contract RouterTest is Test {
-    Router public router;
-    Factory public factory;
+    PoolRouter public router;
+    PoolFactory public factory;
     MockERC20 public tokenA;
     MockERC20 public tokenB;
     Pair public pair;
@@ -21,8 +21,8 @@ contract RouterTest is Test {
 
     function setUp() public {
         // Deploy factory and router
-        factory = new Factory();
-        router = new Router(address(factory));
+        factory = new PoolFactory();
+        router = new PoolRouter(address(factory));
 
         // Deploy tokens and mint to user
         tokenA = new MockERC20(user);
@@ -32,10 +32,7 @@ contract RouterTest is Test {
         // tokenB.mint(user, 1000 * 1e18);
 
         // Create pair
-        address pairAddress = factory.createPair(
-            address(tokenA),
-            address(tokenB)
-        );
+        address pairAddress = factory.createPair(address(tokenA), address(tokenB));
         pair = Pair(pairAddress);
 
         // Approve router for token transfers
@@ -53,20 +50,11 @@ contract RouterTest is Test {
         uint256 amountAMin = 90 * 1e18;
         uint256 amountBMin = 180 * 1e18;
 
-        (uint256 amountA, uint256 amountB, uint256 liquidity) = router
-            .addLiquidity(
-                address(tokenA),
-                address(tokenB),
-                amountADesired,
-                amountBDesired,
-                amountAMin,
-                amountBMin,
-                user
-            );
-
-        uint256 expectedLiquidity = SafeMath.sqrt(
-            amountADesired * amountBDesired
+        (uint256 amountA, uint256 amountB, uint256 liquidity) = router.addLiquidity(
+            address(tokenA), address(tokenB), amountADesired, amountBDesired, amountAMin, amountBMin, user
         );
+
+        uint256 expectedLiquidity = SafeMath.sqrt(amountADesired * amountBDesired);
 
         // Assertions
         assertEq(amountA, 100 * 1e18, "Incorrect amountA");
@@ -77,7 +65,6 @@ contract RouterTest is Test {
     }
 
     function testSwapExactTokensForTokens() public {
-
         // Step 1: Approve router to spend tokens
         vm.startPrank(user);
         tokenA.approve(address(router), type(uint256).max); // Approve max TokenA
@@ -89,17 +76,16 @@ contract RouterTest is Test {
         router.addLiquidity(
             address(tokenA),
             address(tokenB),
-            .1 ether, // Add 1e9 TokenA
-            .1 ether, // Add 2e9 TokenB
-            .1 ether, // Minimum TokenA
-            .1 ether, // Minimum TokenB
+            0.1 ether, // Add 1e9 TokenA
+            0.1 ether, // Add 2e9 TokenB
+            0.1 ether, // Minimum TokenA
+            0.1 ether, // Minimum TokenB
             user
         );
         vm.stopPrank();
 
-
         // Step 3: Perform swap
-        uint256 amountIn = 10; 
+        uint256 amountIn = 10;
         uint256 expectedAmountOut = 10;
 
         vm.startPrank(user);
@@ -123,5 +109,4 @@ contract RouterTest is Test {
 
         assert(receivedTokenB >= expectedAmountOut);
     }
-
 }

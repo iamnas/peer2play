@@ -5,7 +5,7 @@ import {IFactory} from "./interfaces/IFactory.sol";
 import {IPair} from "./interfaces/IPair.sol";
 import {Pair} from "./Pair.sol";
 
-contract Factory is IFactory {
+contract PoolFactory is IFactory {
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;
 

@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-
-
 import {IFactory} from "./interfaces/IFactory.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IPair} from "./interfaces/IPair.sol";
 import {SafeMath} from "./library/SafeMath.sol";
 
-contract Router {
+contract PoolRouter {
     using SafeMath for uint256;
 
     address public immutable factory;
@@ -35,14 +33,7 @@ contract Router {
 
         address pair = IFactory(factory).getPair(tokenA, tokenB);
 
-        (amountA, amountB) = _addLiquidity(
-            tokenA,
-            tokenB,
-            amountADesired,
-            amountBDesired,
-            amountAMin,
-            amountBMin
-        );
+        (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
 
         IERC20(tokenA).transferFrom(msg.sender, pair, amountA);
         IERC20(tokenB).transferFrom(msg.sender, pair, amountB);
@@ -95,12 +86,9 @@ contract Router {
     }
 
     // Swap tokens
-    function swapExactTokensForTokens(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to
-    ) external {
+    function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] calldata path, address to)
+        external
+    {
         IERC20(path[0]).transferFrom(msg.sender, _pairFor(path[0], path[1]), amountIn);
 
         _swap(path, to);
@@ -118,33 +106,24 @@ contract Router {
             uint256 amountInput = IERC20(input).balanceOf(pair);
             uint256 amountOutput = _getAmountOut(amountInput, input, output);
 
-            (address token0, ) = _sortTokens(input, output);
-            (uint256 amount0Out, uint256 amount1Out) = input == token0
-                ? (uint256(0), amountOutput)
-                : (amountOutput, uint256(0));
+            (address token0,) = _sortTokens(input, output);
+            (uint256 amount0Out, uint256 amount1Out) =
+                input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
 
             IPair(pair).swap(amount0Out, amount1Out, _to);
         }
     }
 
     // Helper to get reserves
-    function _getReserves(address tokenA, address tokenB)
-        internal
-        view
-        returns (uint256 reserveA, uint256 reserveB)
-    {
-        (address token0, ) = _sortTokens(tokenA, tokenB);
+    function _getReserves(address tokenA, address tokenB) internal view returns (uint256 reserveA, uint256 reserveB) {
+        (address token0,) = _sortTokens(tokenA, tokenB);
         address pair = _pairFor(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1, ) = IPair(pair).getReserves();
+        (uint256 reserve0, uint256 reserve1,) = IPair(pair).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
     // Helper to calculate amounts
-    function _getAmountOut(uint256 amountIn, address input, address output)
-        internal
-        view
-        returns (uint256 amountOut)
-    {
+    function _getAmountOut(uint256 amountIn, address input, address output) internal view returns (uint256 amountOut) {
         (uint256 reserveIn, uint256 reserveOut) = _getReserves(input, output);
         uint256 amountInWithFee = amountIn.mul(997);
         uint256 numerator = amountInWithFee.mul(reserveOut);
@@ -158,11 +137,7 @@ contract Router {
     }
 
     // Token sorting
-    function _sortTokens(address tokenA, address tokenB)
-        internal
-        pure
-        returns (address token0, address token1)
-    {
+    function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         require(tokenA != tokenB, "Router: IDENTICAL_ADDRESSES");
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     }
