@@ -17,6 +17,47 @@ contract PoolRouter {
 
     receive() external payable {}
 
+    // View Functions
+
+    // Get the amount of tokenB needed when providing tokenA for liquidity
+    function quoteAddLiquidity(address tokenA, address tokenB, uint256 amountADesired)
+        public
+        view
+        returns (uint256 amountBOptimal)
+    {
+        (uint256 reserveA, uint256 reserveB) = _getReserves(tokenA, tokenB);
+        if (reserveA == 0 && reserveB == 0) {
+            return 0; // No existing liquidity, any ratio is acceptable
+        }
+        return amountADesired.mul(reserveB) / reserveA;
+    }
+
+    // Get the expected output amount for a swap
+    function getAmountOut(uint256 amountIn, address tokenIn, address tokenOut) public view returns (uint256) {
+        return _getAmountOut(amountIn, tokenIn, tokenOut);
+    }
+
+    // Get amounts out for a path of trades
+    function getAmountsOut(uint256 amountIn, address[] memory path) public view returns (uint256[] memory amounts) {
+        require(path.length >= 2, "Router: INVALID_PATH");
+        amounts = new uint256[](path.length);
+        amounts[0] = amountIn;
+
+        for (uint256 i = 0; i < path.length - 1; i++) {
+            amounts[i + 1] = _getAmountOut(amounts[i], path[i], path[i + 1]);
+        }
+    }
+
+    // Get the current reserves for a pair
+    function getReserves(address tokenA, address tokenB) public view returns (uint256 reserveA, uint256 reserveB) {
+        return _getReserves(tokenA, tokenB);
+    }
+
+    // Get the pair address for two tokens
+    function getPair(address tokenA, address tokenB) public view returns (address) {
+        return _pairFor(tokenA, tokenB);
+    }
+
     // Add liquidity
     function addLiquidity(
         address tokenA,
@@ -27,21 +68,24 @@ contract PoolRouter {
         uint256 amountBMin,
         address to
     ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
+        // Create pair if it doesn't exist
         if (IFactory(factory).getPair(tokenA, tokenB) == address(0)) {
             IFactory(factory).createPair(tokenA, tokenB);
         }
 
         address pair = IFactory(factory).getPair(tokenA, tokenB);
 
+        // Calculate optimal amounts
         (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
 
+        // Transfer tokens to pair
         IERC20(tokenA).transferFrom(msg.sender, pair, amountA);
         IERC20(tokenB).transferFrom(msg.sender, pair, amountB);
 
+        // Mint LP tokens
         liquidity = IPair(pair).mint(to);
     }
 
-    // Internal helper for calculating liquidity amounts
     function _addLiquidity(
         address tokenA,
         address tokenB,
@@ -51,6 +95,7 @@ contract PoolRouter {
         uint256 amountBMin
     ) internal view returns (uint256 amountA, uint256 amountB) {
         (uint256 reserveA, uint256 reserveB) = _getReserves(tokenA, tokenB);
+
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
@@ -70,7 +115,7 @@ contract PoolRouter {
     function removeLiquidity(
         address tokenA,
         address tokenB,
-        // uint256 liquidity,
+        uint256 liquidity, // Added back the liquidity parameter
         uint256 amountAMin,
         uint256 amountBMin,
         address to
@@ -78,7 +123,12 @@ contract PoolRouter {
         address pair = IFactory(factory).getPair(tokenA, tokenB);
         require(pair != address(0), "Router: PAIR_DOES_NOT_EXIST");
 
-        // IPair(pair).transferFrom(msg.sender, pair, liquidity);
+        // Transfer LP tokens from sender to pair
+        bool success = IPair(pair).transferFrom(msg.sender, pair, liquidity);
+
+        require(success, "Router: transfer from pair failed");
+
+        // Burn LP tokens and get tokens back
         (amountA, amountB) = IPair(pair).burn(to);
 
         require(amountA >= amountAMin, "Router: INSUFFICIENT_A_AMOUNT");
@@ -89,20 +139,25 @@ contract PoolRouter {
     function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, address[] calldata path, address to)
         external
     {
+        require(path.length >= 2, "Router: INVALID_PATH");
+
+        // Calculate expected amounts
+        uint256[] memory amounts = getAmountsOut(amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
+
+        // Transfer initial tokens to first pair
         IERC20(path[0]).transferFrom(msg.sender, _pairFor(path[0], path[1]), amountIn);
 
+        // Execute the swap
         _swap(path, to);
-
-        uint256 balanceOut = IERC20(path[path.length - 1]).balanceOf(to);
-        require(balanceOut >= amountOutMin, "Router: INSUFFICIENT_OUTPUT_AMOUNT");
     }
 
-    // Internal swap function
     function _swap(address[] memory path, address _to) internal {
         for (uint256 i = 0; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
             address pair = _pairFor(input, output);
 
+            // Get current balance of input token in the pair
             uint256 amountInput = IERC20(input).balanceOf(pair);
             uint256 amountOutput = _getAmountOut(amountInput, input, output);
 
@@ -110,11 +165,13 @@ contract PoolRouter {
             (uint256 amount0Out, uint256 amount1Out) =
                 input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
 
-            IPair(pair).swap(amount0Out, amount1Out, _to);
+            // Address to send output tokens to
+            address to = i < path.length - 2 ? _pairFor(output, path[i + 2]) : _to;
+
+            IPair(pair).swap(amount0Out, amount1Out, to);
         }
     }
 
-    // Helper to get reserves
     function _getReserves(address tokenA, address tokenB) internal view returns (uint256 reserveA, uint256 reserveB) {
         (address token0,) = _sortTokens(tokenA, tokenB);
         address pair = _pairFor(tokenA, tokenB);
@@ -122,23 +179,23 @@ contract PoolRouter {
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
-    // Helper to calculate amounts
     function _getAmountOut(uint256 amountIn, address input, address output) internal view returns (uint256 amountOut) {
         (uint256 reserveIn, uint256 reserveOut) = _getReserves(input, output);
+        require(reserveIn > 0 && reserveOut > 0, "Router: INSUFFICIENT_LIQUIDITY");
+
         uint256 amountInWithFee = amountIn.mul(997);
         uint256 numerator = amountInWithFee.mul(reserveOut);
         uint256 denominator = reserveIn.mul(1000).add(amountInWithFee);
         amountOut = numerator / denominator;
     }
 
-    // Pair address lookup
     function _pairFor(address tokenA, address tokenB) internal view returns (address) {
         return IFactory(factory).getPair(tokenA, tokenB);
     }
 
-    // Token sorting
     function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         require(tokenA != tokenB, "Router: IDENTICAL_ADDRESSES");
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        require(token0 != address(0), "Router: ZERO_ADDRESS");
     }
 }

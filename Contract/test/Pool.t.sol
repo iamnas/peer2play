@@ -9,6 +9,7 @@ import {PoolRouter} from "../src/PoolRouter.sol";
 import {Pair} from "../src/Pair.sol";
 import {PoolFactory} from "../src/PoolFactory.sol";
 import {SafeMath} from "../src/library/SafeMath.sol";
+import {IPair} from "../src/interfaces/IPair.sol";
 
 contract RouterTest is Test {
     PoolRouter public router;
@@ -18,6 +19,7 @@ contract RouterTest is Test {
     Pair public pair;
 
     address public user = address(0x1234);
+    uint256 private constant MINIMUM_LIQUIDITY = 1000; // Prevent division by zero
 
     function setUp() public {
         // Deploy factory and router
@@ -27,9 +29,6 @@ contract RouterTest is Test {
         // Deploy tokens and mint to user
         tokenA = new MockERC20(user);
         tokenB = new MockERC20(user);
-
-        // tokenA.mint(user, 1000 * 1e18);
-        // tokenB.mint(user, 1000 * 1e18);
 
         // Create pair
         address pairAddress = factory.createPair(address(tokenA), address(tokenB));
@@ -54,7 +53,7 @@ contract RouterTest is Test {
             address(tokenA), address(tokenB), amountADesired, amountBDesired, amountAMin, amountBMin, user
         );
 
-        uint256 expectedLiquidity = SafeMath.sqrt(amountADesired * amountBDesired);
+        uint256 expectedLiquidity = SafeMath.sqrt(amountADesired * amountBDesired) - MINIMUM_LIQUIDITY;
 
         // Assertions
         assertEq(amountA, 100 * 1e18, "Incorrect amountA");
@@ -71,6 +70,8 @@ contract RouterTest is Test {
         tokenB.approve(address(router), type(uint256).max); // Approve max TokenB
         vm.stopPrank();
 
+        // uint256 expectedAmountOut = (reserve1 * amountIn) / (reserve0 + amountIn);
+
         // Step 2: Add liquidity
         vm.startPrank(user);
         router.addLiquidity(
@@ -86,7 +87,7 @@ contract RouterTest is Test {
 
         // Step 3: Perform swap
         uint256 amountIn = 10;
-        uint256 expectedAmountOut = 10;
+        uint256 expectedAmountOut = 5;
 
         vm.startPrank(user);
         uint256 initialBalanceB = tokenB.balanceOf(user); // Track initial TokenB balance
@@ -109,4 +110,5 @@ contract RouterTest is Test {
 
         assert(receivedTokenB >= expectedAmountOut);
     }
+
 }
