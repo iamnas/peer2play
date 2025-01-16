@@ -43,6 +43,10 @@ Attach screenshots or videos of the UI, transactions, and functionality in actio
 **Liquidity Management**
 ![Liquidity Management](demo/liquidity-remove.png)
 
+
+## Demo Video
+
+![📽️ Watch the Demo Video](demo/demo.gif)
 ---
 
 ## **Installation and Setup**
@@ -50,7 +54,7 @@ Attach screenshots or videos of the UI, transactions, and functionality in actio
 ### Prerequisites
 - **Node.js** (v16 or above)
 - **Foundry** (for contract development)
-- **NPM/Yarn**
+- **PNPM**
 - **Metamask** or any other Web3-compatible wallet.
 
 ---
@@ -114,7 +118,7 @@ cd ../frontend
 
 1. **Install Dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. **Environment Configuration**
@@ -125,7 +129,7 @@ cd ../frontend
 
 3. **Start the Frontend**
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
    The frontend will run locally on `http://localhost:5173`.
