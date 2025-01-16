@@ -1,4 +1,4 @@
-export const POOL_ROUTER_ADDRESS = "0xe882A61EFd5DfB1a91a0bd76539e323322eCE086";
+export const POOL_ROUTER_ADDRESS = "0x37c44edadc5A4296ab502DF231a938276c97d46C";
 export const POOL_ROUTER_ABI = [
   {
     name: "addLiquidity",

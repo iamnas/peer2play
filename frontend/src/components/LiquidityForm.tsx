@@ -4,6 +4,7 @@ import { useAccount } from 'wagmi';
 import { Loader2 } from 'lucide-react';
 import { useAddLiquidity } from '../hooks/useAddLiquidity';
 import { Address } from 'viem';
+import { TOKENS } from '../utils/tokens';
 
 interface LiquidityFormProps {
   isConnected: boolean;
@@ -53,18 +54,11 @@ export const LiquidityForm: React.FC<LiquidityFormProps> = ({
     try {
       setError(null);
 
-      // Convert amounts to BigInt (assuming 18 decimals)
-      // const amountADesired = tokenAAmount;
-      // const amountBDesired = tokenBAmount;
-      // Set min amounts to 98% of desired (you might want to make this configurable)
-      // const amountAMin = amountADesired * 98n / 100n;
-      // const amountBMin = amountBDesired * 98n / 100n;
-
       await addLiquidity(
         tokenAAddress as Address,
         tokenBAddress as Address,
-        BigInt(tokenAAmount),
-        BigInt(tokenBAmount),
+        BigInt(Number(tokenAAmount) * 10 ** TOKENS.TOKEN_A.decimals),
+        BigInt(Number(tokenBAmount) * 10 ** TOKENS.TOKEN_B.decimals),
         BigInt(0),
         BigInt(0),
       );

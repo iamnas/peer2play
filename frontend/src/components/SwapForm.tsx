@@ -7,8 +7,9 @@ import { SwapStatus, useSwapExactTokensForTokens } from '../hooks/useSwapExactTo
 import { POOL_ROUTER_ADDRESS } from '../utils/contracts';
 
 export const SwapForm: React.FC = () => {
-    const [tokenAAmount, setTokenAAmount] = useState('');
-    const [tokenBAmount, setTokenBAmount] = useState('');
+    const [tokenAAmount, setTokenAAmount] = useState(0);
+    const [tokenBAmount, setTokenBAmount] = useState(0);
+    const [tokenBAmountDecimal, setTokenBAmountDecimal] = useState(0);
     const [tokenAAddress, setTokenAAddress] = useState(TOKENS.TOKEN_A.address); // Add default Token A address
     const [tokenBAddress, setTokenBAddress] = useState(TOKENS.TOKEN_B.address); // Add default Token B address
 
@@ -17,15 +18,16 @@ export const SwapForm: React.FC = () => {
 
     // Fetching the estimated output
     const { amountOut } = useGetAmountOut(
-        BigInt(tokenAAmount),
+        BigInt(Number(tokenAAmount) * 10 ** TOKENS.TOKEN_A.decimals),
         tokenAAddress,
         tokenBAddress
     );
 
     // Update Token B amount whenever `amountOut` changes
     useEffect(() => {
-        if (amountOut) setTokenBAmount(amountOut.toString());
-    }, [amountOut]);
+        const data = Number((Number(amountOut) / 10 ** TOKENS.TOKEN_A.decimals).toFixed(2));
+        if (amountOut) { setTokenBAmount(data); setTokenBAmountDecimal(tokenBAmountDecimal) };
+    }, [amountOut,tokenBAmountDecimal]);
 
     // Preparing to execute the swap
     const { swap, status } = useSwapExactTokensForTokens(tokenAAddress, POOL_ROUTER_ADDRESS);
@@ -35,7 +37,7 @@ export const SwapForm: React.FC = () => {
         e.preventDefault();
         try {
             if (isConnected && address) {
-                const result = await swap(tokenAAmount, tokenBAmount, [tokenAAddress, tokenBAddress], address);
+                const result = await swap((Number(tokenAAmount) * 10 ** TOKENS.TOKEN_A.decimals), tokenBAmountDecimal, [tokenAAddress, tokenBAddress], address);
                 console.log('Swap successful:', result);
 
             }
@@ -64,7 +66,7 @@ export const SwapForm: React.FC = () => {
                     <input
                         type="number"
                         value={tokenAAmount}
-                        onChange={(e) => setTokenAAmount(e.target.value)}
+                        onChange={(e) => setTokenAAmount(Number(e.target.value))}
                         placeholder="0.0"
                         className="bg-transparent text-2xl text-white placeholder-white/50 outline-none w-full"
                     />

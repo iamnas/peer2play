@@ -1,57 +1,3 @@
-// import { useWriteContract } from 'wagmi';
-// import { POOL_ROUTER_ADDRESS, POOL_ROUTER_ABI } from '../utils/contracts';
-// import { Address } from 'viem';
-// import { useTokenApproval } from './useApproval';
-// import { useState } from 'react';
-
-// export const useSwapExactTokensForTokens = (tokenAddress: Address, // The address of the token to swap
-//     spenderAddress: string) => {
-//     const { writeContractAsync: swapExactTokensForTokens } = useWriteContract();
-//     const { allowance, approve, isApproving } = useTokenApproval(tokenAddress, spenderAddress);
-
-//     const [isSwapping, setIsSwapping] = useState(false);
-
-//     const swap = async (
-//         amountIn: string,
-//         amountOutMin: string,
-//         path: Address[],
-//         to: Address
-//     ) => {
-//         try {
-
-//             if (!allowance || allowance < amountIn) {
-//                 console.log('Allowance insufficient. Calling approve...');
-//                 await approve(BigInt(amountIn));
-//             } else {
-//                 console.log('Allowance sufficient. Proceeding with swap...');
-//             }
-
-//             setIsSwapping(true);
-//             const result = await swapExactTokensForTokens({
-//                 address: POOL_ROUTER_ADDRESS,
-//                 abi: POOL_ROUTER_ABI,
-//                 functionName: 'swapExactTokensForTokens',
-//                 args: [BigInt(amountIn), BigInt(amountOutMin), path, to],
-//             });
-
-//             return result; // Return transaction details if needed
-//         } catch (error) {
-//             console.error('Error during swapExactTokensForTokens:', error);
-//             throw error; // Propagate the error for the caller to handle
-//         } finally {
-//             setIsSwapping(false);
-//         }
-//     };
-
-//     return {
-//         swap,
-//         isSwapping,
-//         isApproving
-//     };
-// };
-
-
-
 import { useWriteContract } from 'wagmi';
 import { POOL_ROUTER_ADDRESS, POOL_ROUTER_ABI } from '../utils/contracts';
 import { Address } from 'viem';
@@ -87,9 +33,9 @@ export const useSwapExactTokensForTokens = (
     setError(null);
   };
 
-  const checkAndApprove = async (amountIn: string): Promise<boolean> => {
+  const checkAndApprove = async (amountIn: number): Promise<boolean> => {
     try {
-      if (!allowance || allowance < amountIn) {
+      if (!allowance || Number(allowance) < amountIn) {
         setStatus(SwapStatus.APPROVING);
         console.log('Initiating token approval...');
         
@@ -116,8 +62,8 @@ export const useSwapExactTokensForTokens = (
   };
 
   const executeSwap = async (
-    amountIn: string,
-    amountOutMin: string,
+    amountIn: number,
+    amountOutMin: number,
     path: Address[],
     to: Address
   ) => {
@@ -149,8 +95,8 @@ export const useSwapExactTokensForTokens = (
   };
 
   const swap = async (
-    amountIn: string,
-    amountOutMin: string,
+    amountIn: number,
+    amountOutMin: number,
     path: Address[],
     to: Address
   ) => {
