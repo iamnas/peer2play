@@ -11,6 +11,10 @@ contract Pair is IPair {
     // Constants for calculations
     uint256 private constant MINIMUM_LIQUIDITY = 1000; // Prevent division by zero
 
+    string public constant name = "Pool LPs";
+    string public constant symbol = "POOL-LP";
+    uint8 public constant decimals = 18;
+
     // Token addresses
     address public override token0;
     address public override token1;
@@ -124,24 +128,29 @@ contract Pair is IPair {
     // Burn LP tokens function in Pair contract
     function burn(address to) external override lock returns (uint256 amount0, uint256 amount1) {
         require(to != address(0), "Pair: BURN_TO_ZERO_ADDRESS");
+
+        // Get balances and liquidity
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
-        uint256 liquidity = balanceOf[msg.sender];
+        uint256 liquidity = balanceOf[address(this)];
 
         require(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
 
-        // Calculate token amounts to return
-        amount0 = liquidity.mul(balance0) / totalSupply;
-        amount1 = liquidity.mul(balance1) / totalSupply;
-        require(amount0 > 0 && amount1 > 0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+        // Calculate amounts with safe math
+        uint256 _totalSupply = totalSupply;
+        amount0 = liquidity.mul(balance0).div(_totalSupply);
+        amount1 = liquidity.mul(balance1).div(_totalSupply);
 
-        _burn(msg.sender, liquidity);
+        // Add minimum amount check with reasonable value
+        uint256 minAmount = 1000; // Adjust this value based on your token decimals
+        require(amount0 >= minAmount && amount1 >= minAmount, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
 
-        // Transfer tokens to recipient
+        // // Burn and transfer
+        _burn(address(this), liquidity);
         _safeTransfer(token0, to, amount0);
         _safeTransfer(token1, to, amount1);
 
-        // Update reserves
+        // Update reserves and emit event
         balance0 = IERC20(token0).balanceOf(address(this));
         balance1 = IERC20(token1).balanceOf(address(this));
         _update(balance0, balance1);

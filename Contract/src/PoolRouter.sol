@@ -111,21 +111,27 @@ contract PoolRouter {
         }
     }
 
-    // Remove liquidity function
     function removeLiquidity(
         address tokenA,
         address tokenB,
-        uint256 liquidity, // Added back the liquidity parameter
+        uint256 liquidity,
         uint256 amountAMin,
         uint256 amountBMin,
         address to
     ) public returns (uint256 amountA, uint256 amountB) {
+        require(to != address(0), "Router: INVALID_RECIPIENT");
+        require(tokenA != tokenB, "Router: IDENTICAL_ADDRESSES");
+
         address pair = IFactory(factory).getPair(tokenA, tokenB);
         require(pair != address(0), "Router: PAIR_DOES_NOT_EXIST");
 
         // Transfer LP tokens from sender to pair
         bool success = IPair(pair).transferFrom(msg.sender, pair, liquidity);
-        require(success, "Router: transfer from pair failed");
+        require(success, "Router: TRANSFER_FROM_FAILED");
+
+        // Get reserves before burn
+        // (uint256 reserveA, uint256 reserveB) = IPair(pair).getReserves();
+        // require(reserveA > 0 && reserveB > 0, "Router: INSUFFICIENT_LIQUIDITY");
 
         // Burn LP tokens and get tokens back
         (amountA, amountB) = IPair(pair).burn(to);
