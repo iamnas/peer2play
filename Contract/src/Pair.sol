@@ -121,7 +121,7 @@ contract Pair is IPair {
         emit Mint(msg.sender, amount0, amount1);
     }
 
-    // Burn LP tokens
+    // Burn LP tokens function in Pair contract
     function burn(address to) external override lock returns (uint256 amount0, uint256 amount1) {
         require(to != address(0), "Pair: BURN_TO_ZERO_ADDRESS");
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
@@ -149,7 +149,6 @@ contract Pair is IPair {
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
-    // Swap tokens
     function swap(uint256 amount0Out, uint256 amount1Out, address to) external override lock {
         require(amount0Out > 0 || amount1Out > 0, "Pair: INSUFFICIENT_OUTPUT_AMOUNT");
         require(to != address(0), "Pair: SWAP_TO_ZERO_ADDRESS");
@@ -157,23 +156,30 @@ contract Pair is IPair {
         (uint256 _reserve0, uint256 _reserve1,) = getReserves();
         require(amount0Out < _reserve0 && amount1Out < _reserve1, "Pair: INSUFFICIENT_LIQUIDITY");
 
-        // Perform transfers
+        // Perform token transfers for the output amounts
         if (amount0Out > 0) _safeTransfer(token0, to, amount0Out);
         if (amount1Out > 0) _safeTransfer(token1, to, amount1Out);
 
-        // Calculate input amounts
+        // Get updated balances of tokens in the pair
         uint256 balance0 = IERC20(token0).balanceOf(address(this));
         uint256 balance1 = IERC20(token1).balanceOf(address(this));
 
+        // Calculate the input amounts for both tokens
         uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
         uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
 
+        // Ensure there is some input
         require(amount0In > 0 || amount1In > 0, "Pair: INSUFFICIENT_INPUT_AMOUNT");
 
-        // Verify k = k (without fee adjustment)
-        // require(balance0.mul(balance1) >= _reserve0.mul(_reserve1), "Pair: K");
+        // Verify the constant product formula (x * y = k) is upheld
+        uint256 balance0Adjusted = balance0 * 1; // No fee, so no adjustments
+        uint256 balance1Adjusted = balance1 * 1; // No fee, so no adjustments
+        require(balance0Adjusted * balance1Adjusted >= _reserve0 * _reserve1, "Pair: K");
 
+        // Update reserves to match the new balances
         _update(balance0, balance1);
+
+        // Emit a Swap event for tracking
         emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
     }
 
